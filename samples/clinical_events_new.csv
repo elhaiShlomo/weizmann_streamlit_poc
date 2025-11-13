@@ -1,0 +1,14 @@
+patient_id,admission_id,occurrence_id,event_time,category_name,event_name,param_name,value_name
+sub-01,1,1,15,Clinical,Medications,DrugName,Valproate
+sub-01,1,1,15,Clinical,Medications,Dose_mg,250
+sub-01,1,2,72.3,Clinical,Medications,DrugName,Levetiracetam
+sub-01,1,2,72.3,Clinical,Medications,Dose_mg,500
+sub-01,1,3,128.45,Clinical,Medications,DrugName,Levetiracetam
+sub-01,1,3,128.45,Clinical,Medications,Dose_mg,250
+sub-01,1,4,144.6,Clinical,Seizure,Severity,Mild
+sub-01,1,4,144.6,Clinical,Seizure,Topography,Focal
+sub-01,1,4,144.6,Clinical,Seizure,Montage,Scalp
+sub-01,1,5,155,Clinical,Medications,DrugName,Valproate
+sub-01,1,5,155,Clinical,Medications,Dose_mg,500
+sub-01,1,7,160.75,Electrophysiological,Electro-Seizure,Montage,Scalp
+sub-01,1,7,160.75,Electrophysiological,Electro-Seizure,Severity,Severe
