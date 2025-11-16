@@ -408,83 +408,81 @@ st.markdown("""
 
 
 # ==============================
-# 🧠 3D Human Brain Visualization
+# 🧠 3D Human Brain Visualization (REAL MRI BRAIN)
 # ==============================
+
 st.title("🧠 3D Human Brain Visualization")
 
-# Load brain model
-mesh = pv.read("A_Human_Brain_realis_0725031124_refine.obj")
+pv.OFF_SCREEN = True
 
-# --- Compute brain bounds ---
-xmin, xmax, ymin, ymax, zmin, zmax = mesh.bounds
+# Load hemisphere meshes
+lh = pv.read("lh.pial.obj")
+rh = pv.read("rh.pial.obj")
 
-# --- Region-based placement ---
-def sample_hpc():
-    return (
-        np.random.uniform(xmin + 0.1*(xmax-xmin), xmin + 0.3*(xmax-xmin)),
-        np.random.uniform(ymin + 0.3*(ymax-ymin), ymin + 0.6*(ymax-ymin)),
-        np.random.uniform(zmin, zmin + 0.3*(zmax-zmin)),
-    )
+# Merge to one brain mesh
+brain = lh.merge(rh)
+brain.clean(inplace=True)
+brain.compute_normals(inplace=True)
 
-def sample_pfc():
-    return (
-        np.random.uniform(xmax - 0.15*(xmax-xmin), xmax),
-        np.random.uniform(ymin + 0.4*(ymax-ymin), ymax),
-        np.random.uniform(zmin + 0.3*(zmax-zmin), zmax),
-    )
-
-def sample_temporal():
-    return (
-        np.random.uniform(xmin + 0.4*(xmax-xmin), xmax - 0.4*(xmax-xmin)),
-        np.random.uniform(ymin, ymin + 0.2*(ymax-ymin)),
-        np.random.uniform(zmin + 0.3*(zmax-zmin), zmax - 0.2*(zmax-zmin)),
-    )
-
-def sample_amyg():
-    return (
-        np.random.uniform(xmin + 0.2*(xmax-xmin), xmin + 0.4*(xmax-xmin)),
-        np.random.uniform(ymin + 0.5*(ymax-ymin), ymin + 0.7*(ymax-ymin)),
-        np.random.uniform(zmin + 0.4*(zmax-zmin), zmin + 0.6*(zmax-zmin)),
-    )
-
-region_sampler = {
-    "HPC": sample_hpc,
-    "PFC": sample_pfc,
-    "Temporal": sample_temporal,
-    "AMYG": sample_amyg,
-    "Other": sample_temporal
-}
-
-# --- Setup 3D plot ---
-plotter = pv.Plotter(window_size=[800, 600])
+plotter = pv.Plotter(window_size=[900, 650])
 plotter.set_background("#0E1117")
-plotter.add_mesh(mesh, color="pink", opacity=0.8, smooth_shading=True)
-plotter.camera.zoom(0.7)
 
-# --- Add electrodes from actual filtered_elec ---
-for _, row in filtered_elec.iterrows():
-
-    region = row["region"]
-    sampler = region_sampler.get(region, sample_temporal)
-    x, y, z = sampler()
-
-    spike = row["spike_value"]
-
-    # color by spike activity
-    if spike > 0.6:
-        color = "red"
-    elif spike > 0.3:
-        color = "orange"
-    else:
-        color = "cyan"
-
-    # size by activity
-    radius = np.interp(spike, [0, 1], [1.5, 4.0])
-
-    sphere = pv.Sphere(radius=radius, center=(x, y, z))
-    plotter.add_mesh(sphere, color=color, smooth_shading=True)
+plotter.add_mesh(
+    brain,
+    color="#cccccc",
+    smooth_shading=True,
+    opacity=0.25,
+    specular=0.4,
+    specular_power=20
+)
 
 plotter.enable_eye_dome_lighting()
 plotter.add_axes()
+plotter.camera.zoom(0.7)
 
-stpyvista(plotter, key="brain_plot")
+# --- Helper: Sample point on cortex (outer surface)
+def place_on_cortex(brain_mesh):
+    faces = brain_mesh.faces.reshape(-1, 4)[:, 1:]
+    idx = np.random.randint(len(faces))
+    tri = brain_mesh.points[faces[idx]]
+    r1, r2 = np.random.rand(2)
+    if r1 + r2 > 1:
+        r1, r2 = 1 - r1, 1 - r2
+    return (1 - r1 - r2) * tri[0] + r1 * tri[1] + r2 * tri[2]
+
+# --- Test: place one electrode on surface ---
+pos = place_on_cortex(brain)
+sphere = pv.Sphere(radius=2.5, center=pos)
+plotter.add_mesh(sphere, color="#00FFFF")
+
+# --- HPC & Amygdala approximate centers ---
+hpc_left  = [-36, -20, -14]
+hpc_right = [36, -20, -14]
+amyg_left  = [-24, -6, -22]
+amyg_right = [24, -6, -22]
+
+# Convert MNI-like coordinates to brain mesh scale
+scale_x = (brain.bounds[1] - brain.bounds[0]) / 140
+scale_y = (brain.bounds[3] - brain.bounds[2]) / 180
+scale_z = (brain.bounds[5] - brain.bounds[4]) / 160
+
+def mni_to_brain(mni):
+    return [
+        mni[0] * scale_x,
+        mni[1] * scale_y,
+        mni[2] * scale_z,
+    ]
+
+# --- Add HPC spheres ---
+hpc_l = pv.Sphere(radius=4.0, center=mni_to_brain(hpc_left))
+hpc_r = pv.Sphere(radius=4.0, center=mni_to_brain(hpc_right))
+plotter.add_mesh(hpc_l, color="#00FFFF", opacity=0.7)
+plotter.add_mesh(hpc_r, color="#00FFFF", opacity=0.7)
+
+# --- Add Amygdala spheres ---
+am_l = pv.Sphere(radius=4.0, center=mni_to_brain(amyg_left))
+am_r = pv.Sphere(radius=4.0, center=mni_to_brain(amyg_right))
+plotter.add_mesh(am_l, color="#FF69B4", opacity=0.7)
+plotter.add_mesh(am_r, color="#FF69B4", opacity=0.7)
+
+stpyvista(plotter, key="brain_real", use_container_width=True)
