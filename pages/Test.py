@@ -1,4 +1,3 @@
-# file: pages/3_Avg_Density_Line.py
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -96,6 +95,44 @@ if "band" in df.columns:
         default=available_bands
     )
     df = df[df["band"].isin(selected_bands)]
+
+# --- Clinical Events Filter ---
+if "event_name" in df_events.columns:
+    st.sidebar.markdown("### Clinical Events Filter")
+
+    available_events = sorted(df_events["event_name"].dropna().unique())
+    selected_events = st.sidebar.multiselect(
+        "Select Clinical Events:",
+        available_events,
+        default=available_events
+    )
+
+    df_events = df_events[df_events["event_name"].isin(selected_events)]
+
+# --- Electrodes Filter ---
+if "electrode" in df_electrodes.columns:
+
+    st.sidebar.markdown("### Electrodes Filter")
+    available_electrodes = sorted(df_electrodes["electrode"].dropna().unique())
+    select_all = st.sidebar.checkbox("Select all electrodes", key="select_all_elec", value=True)
+
+    if select_all:
+        selected_electrodes = st.sidebar.multiselect(
+            "Select Electrodes:",
+            options=available_electrodes,
+            default=available_electrodes,
+            key="elec_multiselect",
+        )
+    else:
+        selected_electrodes = st.sidebar.multiselect(
+            "Select Electrodes:",
+            options=available_electrodes,
+            key="elec_multiselect",
+        )
+
+    # Apply filter
+    df_electrodes = df_electrodes[df_electrodes["electrode"].isin(selected_electrodes)]
+
 
 # --- Brain Region Filter ---
 if "region" in df_electrodes.columns:
@@ -419,7 +456,6 @@ pv.OFF_SCREEN = True
 lh = pv.read("lh.pial.obj")
 rh = pv.read("rh.pial.obj")
 
-# Merge to one brain mesh
 brain = lh.merge(rh)
 brain.clean(inplace=True)
 brain.compute_normals(inplace=True)
