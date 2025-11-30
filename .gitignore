@@ -1,0 +1,18 @@
+# IDE config
+.idea/
+
+# Virtual environments
+.venv/
+
+# Python cache
+__pycache__/
+pages/__pycache__/
+*.pyc
+
+# Build artifacts
+build/
+dist/
+run_dashboard.exe
+
+# Streamlit local static assets
+.streamlit/
